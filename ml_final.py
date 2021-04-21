@@ -80,6 +80,12 @@ def main():
 
 	print(len(trainy))
 
+	trainx = np.array(trainx)
+	print(trainx.shape)
+
+	#np.reshape(trainx, (trainx.shape[0], trainx[1], 1))
+	
+
 	history = model.fit(trainx, trainy, validation_data=(valx, valy), epochs=10, batch_size=15, verbose=1)
 
 	history = history.history
