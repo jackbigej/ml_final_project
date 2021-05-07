@@ -7,8 +7,32 @@ import math
 
 from keras.models import Sequential
 from keras.layers import Dense, Activation, LSTM
+from keras.preprocessing.text import Tokenizer
 from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import StratifiedKFold
+
+# map personality types to integers
+
+personalitySequencer = { 
+	'ENTP': 0,
+	'ENTJ': 1,
+	'ESTP': 2,
+	'ESTJ': 3,
+	'INTP': 4,
+	'INTJ': 5,
+	'ISTP': 6,
+	'ISTJ': 7,
+	'ENFP': 8,
+	'ENFJ': 9,
+	'ESFP': 10,
+	'ESFJ': 11,
+	'ISFP': 12,
+	'ISFJ': 13,
+	'INFP': 14,
+	'INFJ': 15
+}
+
+
 
 def load_data():
 	dataframe = pd.read_csv('mbti_1.csv', engine='python')
@@ -16,14 +40,20 @@ def load_data():
 	
 	return dataset
 
-def make_model(train, valid):
+def make_model():
 
 	model = Sequential()
-	model.add(Dense(150, input_dim=10090, activation='relu'))
+	model.add(Dense(150, input_dim=160095, activation='relu'))
 	model.add(Dense(1, activation='relu'))
 
 
 	return model
+
+def make_sen_ptype_model():
+
+	model = Sequential()
+	model.add(Dense(150, input_dim=2, activation='relu'))
+	model.add(Dense(1, activation='relu'))
 
 def split_xy(dataset):
 	dataX, dataY = [], []
@@ -37,63 +67,71 @@ def split_xy(dataset):
 def main():
 	dataset = load_data()
 
-	'''	
-	m = 0
+	dataX, dataY = split_xy(dataset)
 
-	for i in dataset:
-		if len(i[1]) > m:
-			m = len(i[1])
+# tokenize texts so they can be represented numerically
+	t = Tokenizer()
+	t.fit_on_texts(dataX)
+	dataX = t.texts_to_matrix(dataX, mode='count')
 
+# map training target data to integers
+	mappedPersonalities = []
+	for mbti in dataY:
+		mappedPersonalities.append(personalitySequencer[mbti])
 
-
-	print(m)
-	
-	'''
+	dataY = np.array(mappedPersonalities)
 
 	train = int(len(dataset)*.60)
 	test = len(dataset) - int(len(dataset)*.2)
 
-	train, valid, test = dataset[0:train, :], dataset[train:test], dataset[test:len(dataset) + 1]
+	trainX, trainY = dataX[0:train], dataY[0:train]
+	valX, valY = dataX[train:test], dataY[train:test]
+	testX, testY = dataX[test:len(dataset) +1], dataY[test:len(dataset) +1]
 
-	print('train: ', len(train), ', valid: ', len(valid), ', test: ', len(test))
-
-	#print(train[1])
-	
-	for i in train:
-		while len(i[1]) < 10090:
-			i[1] += ' '
-	'''
-	for i in dataset:
-		print(len(i[1]))
-	
-	'''
-
-	model = make_model(train, valid)
+	print(len(trainX))
+	model = make_model()
 
 	model.compile(loss='mean_squared_error', optimizer='adam')
 
-	trainx, trainy = split_xy(train)
-
-	print(len(trainx))
-
-	valx, valy = split_xy(valid)
-
-	print(len(trainy))
-
-	trainx = np.array(trainx)
-	print(trainx.shape)
-
-	#np.reshape(trainx, (trainx.shape[0], trainx[1], 1))
-	
-
-	history = model.fit(trainx, trainy, validation_data=(valx, valy), epochs=10, batch_size=15, verbose=1)
+	history = model.fit(trainX, trainY, validation_data=(valX, valY), epochs=10, batch_size=15, verbose=1)
 
 	history = history.history
 
-	results = model.evaluate(valx, valy)
+	results = model.evaluate(valX, valY)
 
 	print(history)
 	print(results)
+
+
+# train model using sentiment and personality type
+	ptype_list = [] # list of personality sequences output
+	sent_list = [] # list of sentence sentiment output
+
+	dataX = []
+
+	# dataX = [[ptype, sent], ... ]
+	for i in range(len(ptype_list)):
+		dataX.append([ptype_list[i], sent_list[i])
+
+	
+	trainX, trainY = dataX[0:train], dataY[0:train]
+	valX, valY = dataX[train:test], dataY[train:test]
+	testX, testY = dataX[test:len(dataset) +1], dataY[test:len(dataset) +1]
+
+	model = make_sen_ptype_model()
+	
+	model.compile(loss='mean_squared_error', optimizer='adam')
+
+	history = model.fit(trainX, trainY, validation_data=(valX, valY), epochs=10, batch_size=15, verbose=1)
+
+	history = history.history
+
+	results = model.evaluate(valX, valY)
+
+	print(history)
+	print(results)
+
+
 	
 
 
