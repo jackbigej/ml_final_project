@@ -43,11 +43,17 @@ def load_data():
 def make_model():
 
 	model = Sequential()
-	model.add(Dense(150, input_dim=160098, activation='relu'))
+	model.add(Dense(150, input_dim=160095, activation='relu'))
 	model.add(Dense(1, activation='relu'))
 
 
 	return model
+
+def make_sen_ptype_model():
+
+	model = Sequential()
+	model.add(Dense(150, input_dim=2, activation='relu'))
+	model.add(Dense(1, activation='relu'))
 
 def split_xy(dataset):
 	dataX, dataY = [], []
@@ -95,6 +101,37 @@ def main():
 
 	print(history)
 	print(results)
+
+
+# train model using sentiment and personality type
+	ptype_list = [] # list of personality sequences output
+	sent_list = [] # list of sentence sentiment output
+
+	dataX = []
+
+	# dataX = [[ptype, sent], ... ]
+	for i in range(len(ptype_list)):
+		dataX.append([ptype_list[i], sent_list[i])
+
+	
+	trainX, trainY = dataX[0:train], dataY[0:train]
+	valX, valY = dataX[train:test], dataY[train:test]
+	testX, testY = dataX[test:len(dataset) +1], dataY[test:len(dataset) +1]
+
+	model = make_sen_ptype_model()
+	
+	model.compile(loss='mean_squared_error', optimizer='adam')
+
+	history = model.fit(trainX, trainY, validation_data=(valX, valY), epochs=10, batch_size=15, verbose=1)
+
+	history = history.history
+
+	results = model.evaluate(valX, valY)
+
+	print(history)
+	print(results)
+
+
 	
 
 
